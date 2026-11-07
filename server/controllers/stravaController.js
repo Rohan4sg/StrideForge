@@ -1,7 +1,15 @@
 
 const jwt = require("jsonwebtoken");
+
 const StravaAccount = require("../models/StravaAccount");
-const { syncStravaActivities } = require("../services/stravaService");
+const StravaWebhookEvent = require("../models/StravaWebhookEvent");
+
+const {
+    syncStravaActivities
+} = require("../services/stravaService");
+
+const FRONTEND_URL =
+    process.env.FRONTEND_URL || "http://localhost:5173";
 
 // Generate Strava authorization URL
 exports.connectStrava = async (req, res) => {
@@ -41,7 +49,7 @@ exports.stravaCallback = async (req, res) => {
 
     if (error) {
         return res.redirect(
-            "http://localhost:5173/dashboard?strava=denied"
+            `${FRONTEND_URL}/dashboard?strava=denied`
         );
     }
 
@@ -93,19 +101,19 @@ exports.stravaCallback = async (req, res) => {
             },
             {
                 upsert: true,
-                new: true,
+                returnDocument: "after",
                 runValidators: true
             }
         );
 
-        res.redirect(
-            "http://localhost:5173/dashboard?strava=connected"
+        return res.redirect(
+            `${FRONTEND_URL}/dashboard?strava=connected`
         );
 
     } catch (error) {
         console.error("Strava callback error:", error);
 
-        res.status(400).send(
+        return res.status(400).send(
             "Strava authorization failed. Please try connecting again."
         );
     }
@@ -126,7 +134,86 @@ exports.syncActivities = async (req, res) => {
         console.error("Strava sync error:", error);
 
         res.status(500).json({
-            message: error.message || "Strava synchronization failed"
+            message: error.message ||
+                "Strava synchronization failed"
         });
+    }
+};
+
+// Verify Strava webhook subscription
+exports.handleWebhookVerification = (req, res) => {
+    const mode = req.query["hub.mode"];
+    const token = req.query["hub.verify_token"];
+    const challenge = req.query["hub.challenge"];
+
+    if (
+        mode === "subscribe" &&
+        token &&
+        token === process.env.STRAVA_WEBHOOK_VERIFY_TOKEN &&
+        challenge
+    ) {
+        console.log("Strava webhook verification successful");
+
+        return res.status(200).json({
+            "hub.challenge": challenge
+        });
+    }
+
+    return res.sendStatus(403);
+};
+
+// Receive and persist Strava webhook events
+exports.handleWebhookEvent = async (req, res) => {
+    try {
+        const event = req.body;
+
+        if (
+            !event ||
+            !event.object_type ||
+            !event.aspect_type ||
+            event.object_id == null ||
+            event.owner_id == null ||
+            event.event_time == null ||
+            event.subscription_id == null
+        ) {
+            return res.status(400).json({
+                message: "Invalid Strava webhook event"
+            });
+        }
+
+        const eventKey = [
+            event.subscription_id,
+            event.owner_id,
+            event.object_type,
+            event.object_id,
+            event.aspect_type,
+            event.event_time
+        ].join("_");
+
+        await StravaWebhookEvent.updateOne(
+            { event_key: eventKey },
+            {
+                $setOnInsert: {
+                    event_key: eventKey,
+                    event_data: event,
+                    status: "pending",
+                    attempts: 0,
+                    next_attempt_at: new Date()
+                }
+            },
+            { upsert: true }
+        );
+
+        return res.status(200).send("EVENT_RECEIVED");
+
+    } catch (error) {
+        console.error(
+            "Webhook storage error:",
+            error.message
+        );
+
+        return res.status(500).send(
+            "Unable to store event"
+        );
     }
 };

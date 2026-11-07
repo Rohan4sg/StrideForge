@@ -7,7 +7,9 @@ const authMiddleware = require("../middleware/authMiddleware");
 const {
     connectStrava,
     stravaCallback,
-    syncActivities
+    syncActivities,
+    handleWebhookVerification,
+    handleWebhookEvent
 } = require("../controllers/stravaController");
 
 // Connect Strava account
@@ -16,7 +18,13 @@ router.get("/connect", authMiddleware, connectStrava);
 // Strava OAuth callback
 router.get("/callback", stravaCallback);
 
-// Synchronize Strava activities
+// Manual activity synchronization
 router.post("/sync", authMiddleware, syncActivities);
+
+// Strava webhook verification (public endpoint)
+router.get("/webhook", handleWebhookVerification);
+
+// Strava webhook event receiver (public endpoint)
+router.post("/webhook", handleWebhookEvent);
 
 module.exports = router;
