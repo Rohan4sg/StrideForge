@@ -1,0 +1,147 @@
+
+.login-page {
+    min-height: 100vh;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 25px;
+    background:
+        radial-gradient(circle at top left, #1c3028 0%, transparent 40%),
+        #090f17;
+    color: #f3f4f6;
+    font-family: Arial, sans-serif;
+}
+
+.login-card {
+    width: 100%;
+    max-width: 440px;
+    padding: 42px;
+    background: #141d29;
+    border: 1px solid #293746;
+    border-radius: 16px;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.login-brand {
+    text-align: center;
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    margin-bottom: 38px;
+}
+
+.login-brand span {
+    color: #a3e635;
+}
+
+.login-heading {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.login-tagline {
+    color: #a3e635;
+    font-size: 11px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    margin-bottom: 12px;
+}
+
+.login-heading h2 {
+    font-size: 28px;
+    margin-bottom: 10px;
+}
+
+.login-heading > p:last-child {
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.login-form {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.login-field {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.login-field label {
+    color: #d1d5db;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.login-field input {
+    width: 100%;
+    padding: 14px;
+    background: #0b1018;
+    color: white;
+    border: 1px solid #374151;
+    border-radius: 8px;
+    font-size: 14px;
+    outline: none;
+}
+
+.login-field input:focus {
+    border-color: #a3e635;
+    box-shadow: 0 0 0 2px rgba(163, 230, 53, 0.12);
+}
+
+.login-field input::placeholder {
+    color: #6b7280;
+}
+
+.login-submit {
+    width: 100%;
+    padding: 14px;
+    margin-top: 5px;
+    background: #a3e635;
+    color: #111827;
+    border: none;
+    border-radius: 8px;
+    font-size: 15px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.login-submit:hover {
+    background: #bef264;
+}
+
+.login-error {
+    color: #f87171;
+    font-size: 13px;
+}
+
+.login-footer {
+    text-align: center;
+    margin-top: 28px;
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.login-footer a {
+    color: #a3e635;
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.login-footer a:hover {
+    text-decoration: underline;
+}
+
+@media (max-width: 480px) {
+    .login-card {
+        padding: 28px 22px;
+    }
+
+    .login-brand {
+        font-size: 28px;
+    }
+}

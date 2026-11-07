@@ -1,0 +1,246 @@
+
+.dashboard,
+.dashboard * {
+    box-sizing: border-box;
+}
+
+.dashboard {
+    min-height: 100vh;
+    background: #0b1018;
+    color: #f3f4f6;
+    font-family: Arial, sans-serif;
+}
+
+.dashboard .topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 22px 5%;
+    background: #141d29;
+    border-bottom: 1px solid #29313d;
+}
+
+.dashboard .topbar h1 {
+    font-size: 26px;
+}
+
+.dashboard .topbar h1 span {
+    color: #a3e635;
+}
+
+.dashboard .user-section {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.dashboard button {
+    cursor: pointer;
+    border: none;
+    border-radius: 6px;
+    font-weight: bold;
+}
+
+.dashboard .topbar button {
+    padding: 10px 18px;
+    background: #a3e635;
+    color: #111827;
+}
+
+.dashboard-content {
+    width: 90%;
+    max-width: 1200px;
+    margin: 35px auto;
+    display: flex;
+    flex-direction: column;
+    gap: 25px;
+}
+
+.dashboard .panel {
+    background: #141d29;
+    border: 1px solid #29313d;
+    border-radius: 12px;
+    padding: 25px;
+}
+
+.dashboard .panel h2 {
+    font-size: 21px;
+    margin-bottom: 8px;
+}
+
+.dashboard .panel > p {
+    color: #9ca3af;
+    margin-bottom: 22px;
+    font-size: 14px;
+}
+
+.dashboard .activity-form {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 18px;
+}
+
+.dashboard .activity-form div {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+}
+
+.dashboard .activity-form label {
+    font-size: 14px;
+    color: #d1d5db;
+}
+
+.dashboard .activity-form input {
+    padding: 12px;
+    background: #0b1018;
+    color: white;
+    border: 1px solid #374151;
+    border-radius: 6px;
+    width: 100%;
+}
+
+.dashboard .activity-form input:focus {
+    outline: none;
+    border-color: #a3e635;
+}
+
+.dashboard .activity-form button {
+    grid-column: 1 / -1;
+    padding: 13px;
+    background: #a3e635;
+    color: #111827;
+}
+
+.dashboard .activity-form button:hover {
+    background: #bef264;
+}
+
+.dashboard .message {
+    margin-top: 15px;
+    color: #a3e635;
+    font-size: 14px;
+}
+
+.dashboard .acwr-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 15px;
+    margin-bottom: 22px;
+}
+
+.dashboard .acwr-item {
+    padding: 20px;
+    background: #0b1018;
+    border: 1px solid #29313d;
+    border-radius: 8px;
+}
+
+.dashboard .acwr-item span {
+    color: #9ca3af;
+    font-size: 13px;
+}
+
+.dashboard .acwr-item h3 {
+    font-size: 25px;
+    margin: 12px 0 6px;
+}
+
+.dashboard .acwr-item small {
+    color: #9ca3af;
+}
+
+.dashboard .acwr-status {
+    padding: 18px;
+    border-radius: 8px;
+    border: 1px solid #374151;
+}
+
+.dashboard .acwr-status h3 {
+    margin-bottom: 8px;
+}
+
+.dashboard .acwr-status p {
+    font-size: 14px;
+    color: #d1d5db;
+}
+
+.dashboard .acwr-status.neutral {
+    border-color: #6b7280;
+}
+
+.dashboard .acwr-status.low {
+    border-color: #60a5fa;
+}
+
+.dashboard .acwr-status.balanced {
+    border-color: #a3e635;
+}
+
+.dashboard .acwr-status.elevated {
+    border-color: #facc15;
+}
+
+.dashboard .acwr-status.high {
+    border-color: #f87171;
+}
+
+.dashboard .acwr-note {
+    margin-top: 15px;
+    font-size: 12px !important;
+    line-height: 1.5;
+}
+
+.dashboard .table-container {
+    overflow-x: auto;
+}
+
+.dashboard table {
+    width: 100%;
+    border-collapse: collapse;
+    text-align: left;
+}
+
+.dashboard th,
+.dashboard td {
+    padding: 15px;
+    border-bottom: 1px solid #29313d;
+    white-space: nowrap;
+}
+
+.dashboard th {
+    color: #a3e635;
+    font-size: 14px;
+}
+
+.dashboard td {
+    color: #d1d5db;
+    font-size: 14px;
+}
+
+@media (max-width: 700px) {
+    .dashboard .topbar {
+        padding: 18px;
+    }
+
+    .dashboard .user-section {
+        gap: 10px;
+    }
+
+    .dashboard-content {
+        width: 94%;
+        margin: 20px auto;
+    }
+
+    .dashboard .activity-form {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard .acwr-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .dashboard .panel {
+        padding: 18px;
+    }
+}
