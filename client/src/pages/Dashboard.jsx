@@ -17,8 +17,11 @@ function Dashboard() {
     const [activities, setActivities] = useState([]);
     const [message, setMessage] = useState("");
     const [stravaMessage, setStravaMessage] = useState("");
+
     const [stravaLoading, setStravaLoading] = useState(false);
     const [syncLoading, setSyncLoading] = useState(false);
+    const [stravaConnected, setStravaConnected] = useState(false);
+    const [stravaStatusLoading, setStravaStatusLoading] = useState(true);
 
     // Handle Strava callback status
     useEffect(() => {
@@ -39,6 +42,19 @@ function Dashboard() {
             );
         }
     }, []);
+
+    // Fetch Strava connection status
+    const fetchStravaStatus = async () => {
+        try {
+            const response = await api.get("/strava/status");
+            setStravaConnected(response.data.connected);
+        } catch (error) {
+            console.error("Strava status error:", error);
+            setStravaConnected(false);
+        } finally {
+            setStravaStatusLoading(false);
+        }
+    };
 
     // Format activity date
     const getDateString = (date) => {
@@ -63,8 +79,10 @@ function Dashboard() {
         }
     };
 
+    // Load dashboard data
     useEffect(() => {
         fetchActivities();
+        fetchStravaStatus();
     }, []);
 
     // Add manual running activity
@@ -281,30 +299,44 @@ function Dashboard() {
                         your running activities with StrideForge.
                     </p>
 
-                    <button
-                        type="button"
-                        onClick={handleConnectStrava}
-                        disabled={stravaLoading}
-                    >
-                        {stravaLoading
-                            ? "Connecting..."
-                            : "Connect with Strava"}
-                    </button>
+                    {stravaStatusLoading ? (
+                        <p>Checking Strava connection...</p>
+                    ) : stravaConnected ? (
+                        <>
+                            <p>
+                                <strong>● Connected</strong>
+                            </p>
 
-                    <button
-                        type="button"
-                        onClick={handleSyncStrava}
-                        disabled={syncLoading}
-                    >
-                        {syncLoading
-                            ? "Synchronizing..."
-                            : "Sync Strava Activities"}
-                    </button>
+                            <button
+                                type="button"
+                                onClick={handleSyncStrava}
+                                disabled={syncLoading}
+                            >
+                                {syncLoading
+                                    ? "Synchronizing..."
+                                    : "Sync Strava Activities"}
+                            </button>
+                        </>
+                    ) : (
+                        <>
+                            <p>
+                                <strong>● Disconnected</strong>
+                            </p>
+
+                            <button
+                                type="button"
+                                onClick={handleConnectStrava}
+                                disabled={stravaLoading}
+                            >
+                                {stravaLoading
+                                    ? "Connecting..."
+                                    : "Connect with Strava"}
+                            </button>
+                        </>
+                    )}
 
                     {stravaMessage && (
-                        <p className="message">
-                            {stravaMessage}
-                        </p>
+                        <p className="message">{stravaMessage}</p>
                     )}
                 </section>
 

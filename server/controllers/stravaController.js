@@ -43,7 +43,7 @@ exports.connectStrava = async (req, res) => {
     }
 };
 
-// Handle Strava authorization callback
+// Handle Strava authorization callback and connection transfer
 exports.stravaCallback = async (req, res) => {
     const { code, state, error } = req.query;
 
@@ -84,33 +84,70 @@ exports.stravaCallback = async (req, res) => {
         const data = await response.json();
 
         if (!response.ok) {
-    console.error("Strava token exchange failed:", {
-        status: response.status,
-        message: data.message,
-        errors: data.errors
-    });
+            console.error("Strava token exchange failed:", {
+                status: response.status,
+                message: data.message,
+                errors: data.errors
+            });
 
-    throw new Error(
-        data.message || "Strava token exchange failed"
-    );
-}
+            throw new Error(
+                data.message || "Strava token exchange failed"
+            );
+        }
 
-        await StravaAccount.findOneAndUpdate(
-            { user_id: decoded.userId },
-            {
-                user_id: decoded.userId,
-                athlete_id: String(data.athlete.id),
+        const athleteId = String(data.athlete.id);
+        const newUserId = decoded.userId;
+
+        // Check whether this Strava athlete is already connected
+        const existingAthleteAccount =
+            await StravaAccount.findOne({
+                athlete_id: athleteId
+            });
+
+        // Check whether the new StrideForge user already
+        // has a different Strava account connected
+        const existingUserAccount =
+            await StravaAccount.findOne({
+                user_id: newUserId
+            });
+
+        if (
+            existingUserAccount &&
+            existingUserAccount.athlete_id !== athleteId
+        ) {
+            return res.redirect(
+                `${FRONTEND_URL}/dashboard?strava=already-connected`
+            );
+        }
+
+        // Transfer an existing Strava connection to the new user
+        if (existingAthleteAccount) {
+            existingAthleteAccount.user_id = newUserId;
+            existingAthleteAccount.athlete_id = athleteId;
+            existingAthleteAccount.access_token = data.access_token;
+            existingAthleteAccount.refresh_token = data.refresh_token;
+            existingAthleteAccount.expires_at = data.expires_at;
+            existingAthleteAccount.scope = data.scope || "";
+
+            await existingAthleteAccount.save();
+
+            console.log(
+                "Strava connection transferred to new user:",
+                newUserId
+            );
+
+        } else {
+            // Create a new connection if this athlete
+            // has never been connected before
+            await StravaAccount.create({
+                user_id: newUserId,
+                athlete_id: athleteId,
                 access_token: data.access_token,
                 refresh_token: data.refresh_token,
                 expires_at: data.expires_at,
                 scope: data.scope || ""
-            },
-            {
-                upsert: true,
-                returnDocument: "after",
-                runValidators: true
-            }
-        );
+            });
+        }
 
         return res.redirect(
             `${FRONTEND_URL}/dashboard?strava=connected`
