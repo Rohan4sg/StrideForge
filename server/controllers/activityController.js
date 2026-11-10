@@ -195,3 +195,83 @@ exports.getWorkload = async (req, res) => {
         });
     }
 };
+
+
+// Fetch all-time and current-month running statistics
+exports.getSummary = async (req, res) => {
+    try {
+        const now = new Date();
+
+        const monthStart = new Date(Date.UTC(
+            now.getUTCFullYear(),
+            now.getUTCMonth(),
+            1
+        ));
+
+        const result = await Activity.aggregate([
+            {
+                $match: {
+                    user_id: new Activity.base.Types.ObjectId(req.userId)
+                }
+            },
+            {
+                $facet: {
+                    allTime: [
+                        {
+                            $group: {
+                                _id: null,
+                                totalActivities: { $sum: 1 },
+                                totalDistance: { $sum: "$distance" },
+                                totalDuration: { $sum: "$duration" }
+                            }
+                        }
+                    ],
+                    thisMonth: [
+                        {
+                            $match: {
+                                activity_date: { $gte: monthStart }
+                            }
+                        },
+                        {
+                            $group: {
+                                _id: null,
+                                totalActivities: { $sum: 1 },
+                                totalDistance: { $sum: "$distance" },
+                                totalDuration: { $sum: "$duration" }
+                            }
+                        }
+                    ]
+                }
+            }
+        ]);
+
+        const formatStats = (data) => {
+            const stats = data[0] || {
+                totalActivities: 0,
+                totalDistance: 0,
+                totalDuration: 0
+            };
+
+            return {
+                totalActivities: stats.totalActivities,
+                totalDistance: Number(stats.totalDistance.toFixed(2)),
+                totalDuration: Number(stats.totalDuration.toFixed(2)),
+                averagePace: stats.totalDistance > 0
+                    ? Number((stats.totalDuration / stats.totalDistance).toFixed(2))
+                    : null
+            };
+        };
+
+        return res.json({
+            allTime: formatStats(result[0].allTime),
+            thisMonth: formatStats(result[0].thisMonth)
+        });
+
+    } catch (error) {
+        console.error("Summary error:", error);
+
+        return res.status(500).json({
+            message: "Failed to calculate running statistics"
+        });
+    }
+};

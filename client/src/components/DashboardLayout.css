@@ -1,0 +1,159 @@
+
+.app-layout {
+    min-height: 100vh;
+    display: flex;
+    background: #0b1018;
+    color: #f3f4f6;
+    font-family: Arial, sans-serif;
+}
+
+.sidebar {
+    width: 250px;
+    min-height: 100vh;
+    background: #141d29;
+    border-right: 1px solid #29313d;
+    padding: 28px 18px;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+}
+
+.sidebar-logo {
+    font-size: 25px;
+    margin: 0 0 45px 8px;
+}
+
+.sidebar-logo span {
+    color: #a3e635;
+}
+
+.sidebar-label {
+    color: #6b7280;
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    margin: 0 0 15px 10px;
+}
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.nav-link {
+    display: flex;
+    align-items: center;
+    gap: 13px;
+    padding: 13px 12px;
+    color: #9ca3af;
+    text-decoration: none;
+    border-radius: 7px;
+    font-size: 14px;
+    transition: 0.2s;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    background: #263344;
+    color: #a3e635;
+}
+
+.nav-icon {
+    width: 20px;
+    text-align: center;
+    font-size: 19px;
+}
+
+.sidebar-bottom {
+    margin-top: auto;
+    border-top: 1px solid #29313d;
+    padding-top: 20px;
+}
+
+.sidebar-bottom p {
+    color: #d1d5db;
+    margin-bottom: 14px;
+}
+
+.sidebar-bottom button {
+    width: 100%;
+    padding: 11px;
+    border: none;
+    border-radius: 6px;
+    background: #a3e635;
+    color: #111827;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.main-area {
+    flex: 1;
+    min-width: 0;
+}
+
+.app-topbar {
+    height: 76px;
+    padding: 0 35px;
+    background: #141d29;
+    border-bottom: 1px solid #29313d;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: #9ca3af;
+    font-size: 14px;
+}
+
+.topbar-user {
+    color: #f3f4f6;
+}
+
+.page-content {
+    padding: 35px;
+    max-width: 1500px;
+    margin: auto;
+}
+
+@media (max-width: 750px) {
+    .app-layout {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        min-height: auto;
+        padding: 16px;
+    }
+
+    .sidebar-logo {
+        margin: 0 0 15px;
+    }
+
+    .sidebar-label {
+        display: none;
+    }
+
+    .sidebar-nav {
+        flex-direction: row;
+        overflow-x: auto;
+        padding-bottom: 5px;
+    }
+
+    .nav-link {
+        white-space: nowrap;
+        font-size: 12px;
+        padding: 10px;
+    }
+
+    .sidebar-bottom {
+        display: none;
+    }
+
+    .app-topbar {
+        padding: 0 16px;
+        height: 60px;
+    }
+
+    .page-content {
+        padding: 18px;
+    }
+}
