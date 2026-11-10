@@ -23,6 +23,25 @@ function Dashboard() {
     const [stravaConnected, setStravaConnected] = useState(false);
     const [stravaStatusLoading, setStravaStatusLoading] = useState(true);
 
+    // Pagination
+    const [currentPage, setCurrentPage] = useState(1);
+    const [pagination, setPagination] = useState({
+        page: 1,
+        limit: 10,
+        total: 0,
+        totalPages: 0,
+        hasNextPage: false,
+        hasPreviousPage: false
+    });
+    const [historyLoading, setHistoryLoading] = useState(false);
+
+    // ACWR workload data
+    const [workload, setWorkload] = useState({
+        acuteLoad: 0,
+        chronicLoad: 0,
+        acwr: null
+    });
+
     // Handle Strava callback status
     useEffect(() => {
         const params = new URLSearchParams(window.location.search);
@@ -32,6 +51,10 @@ function Dashboard() {
             setStravaMessage("Strava connected successfully!");
         } else if (stravaStatus === "denied") {
             setStravaMessage("Strava connection was cancelled.");
+        } else if (stravaStatus === "already-connected") {
+            setStravaMessage(
+                "This StrideForge account already has another Strava account connected."
+            );
         }
 
         if (stravaStatus) {
@@ -69,19 +92,46 @@ function Dashboard() {
         ].join("-");
     };
 
-    // Fetch running activities
-    const fetchActivities = async () => {
+    // Fetch paginated running activities
+    const fetchActivities = async (page = currentPage) => {
+        setHistoryLoading(true);
+
         try {
-            const response = await api.get("/activities");
-            setActivities(response.data);
+            const response = await api.get(
+                `/activities?page=${page}`
+            );
+
+            setActivities(response.data.activities);
+            setPagination(response.data.pagination);
+            setCurrentPage(response.data.pagination.page);
+
         } catch (error) {
+            console.error("Activity fetch error:", error);
             setMessage("Unable to load running activities.");
+        } finally {
+            setHistoryLoading(false);
+        }
+    };
+
+    // Fetch ACWR independently of pagination
+    const fetchWorkload = async () => {
+        try {
+            const response = await api.get("/activities/workload");
+
+            setWorkload({
+                acuteLoad: response.data.acuteLoad,
+                chronicLoad: response.data.chronicLoad,
+                acwr: response.data.acwr
+            });
+        } catch (error) {
+            console.error("Workload fetch error:", error);
         }
     };
 
     // Load dashboard data
     useEffect(() => {
-        fetchActivities();
+        fetchActivities(1);
+        fetchWorkload();
         fetchStravaStatus();
     }, []);
 
@@ -102,7 +152,11 @@ function Dashboard() {
             setDistance("");
             setDuration("");
 
-            await fetchActivities();
+            await Promise.all([
+                fetchActivities(1),
+                fetchWorkload()
+            ]);
+
         } catch (error) {
             setMessage(
                 error.response?.data?.message ||
@@ -150,7 +204,10 @@ function Dashboard() {
                 `Updated: ${response.data.updated}.`
             );
 
-            await fetchActivities();
+            await Promise.all([
+                fetchActivities(1),
+                fetchWorkload()
+            ]);
 
         } catch (error) {
             setStravaMessage(
@@ -162,6 +219,19 @@ function Dashboard() {
         }
     };
 
+    // Pagination controls
+    const handlePreviousPage = () => {
+        if (pagination.hasPreviousPage) {
+            fetchActivities(currentPage - 1);
+        }
+    };
+
+    const handleNextPage = () => {
+        if (pagination.hasNextPage) {
+            fetchActivities(currentPage + 1);
+        }
+    };
+
     // Logout
     const logout = () => {
         localStorage.removeItem("token");
@@ -169,64 +239,10 @@ function Dashboard() {
         navigate("/login");
     };
 
-    // ACWR calculation
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    // Weeks start on Monday
-    const getWeekStart = (date) => {
-        const result = new Date(date);
-        const day = result.getDay();
-
-        result.setDate(
-            result.getDate() - (day === 0 ? 6 : day - 1)
-        );
-
-        result.setHours(0, 0, 0, 0);
-
-        return result;
-    };
-
-    const currentWeekStart = getWeekStart(today);
-    const weeklyLoads = [];
-
-    // Current week and previous four weeks
-    for (let i = 0; i < 5; i++) {
-        const weekStart = new Date(currentWeekStart);
-
-        weekStart.setDate(
-            currentWeekStart.getDate() - i * 7
-        );
-
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekEnd.getDate() + 7);
-
-        const weeklyDistance = activities.reduce((sum, item) => {
-            const date = new Date(
-                `${getDateString(item.activity_date)}T00:00:00`
-            );
-
-            if (date >= weekStart && date < weekEnd) {
-                return sum + Number(item.distance);
-            }
-
-            return sum;
-        }, 0);
-
-        weeklyLoads.push(weeklyDistance);
-    }
-
-    const acuteLoad = weeklyLoads[0];
-
-    // Average of previous four completed weeks
-    const chronicLoad =
-        weeklyLoads.slice(1, 5).reduce(
-            (sum, load) => sum + load,
-            0
-        ) / 4;
-
-    const acwr =
-        chronicLoad > 0 ? acuteLoad / chronicLoad : null;
+    // ACWR values
+    const acuteLoad = workload.acuteLoad;
+    const chronicLoad = workload.chronicLoad;
+    const acwr = workload.acwr;
 
     // Workload status
     const getACWRStatus = () => {
@@ -446,50 +462,88 @@ function Dashboard() {
                 {/* Running History */}
                 <section className="panel">
                     <h2>Running History</h2>
-                    <p>Your recorded running activities.</p>
 
-                    {activities.length === 0 ? (
+                    <p>
+                        Your recorded running activities.
+                        {" "}
+                        Total activities: {pagination.total}
+                    </p>
+
+                    {historyLoading ? (
+                        <p>Loading running history...</p>
+                    ) : activities.length === 0 ? (
                         <p>No running activities recorded yet.</p>
                     ) : (
-                        <div className="table-container">
-                            <table>
-                                <thead>
-                                    <tr>
-                                        <th>Date</th>
-                                        <th>Distance</th>
-                                        <th>Duration</th>
-                                        <th>Pace</th>
-                                    </tr>
-                                </thead>
-
-                                <tbody>
-                                    {activities.map(item => (
-                                        <tr key={item.id}>
-                                            <td>
-                                                {getDateString(
-                                                    item.activity_date
-                                                )}
-                                            </td>
-
-                                            <td>
-                                                {Number(item.distance).toFixed(2)} km
-                                            </td>
-
-                                            <td>
-                                                {Number(item.duration).toFixed(2)} min
-                                            </td>
-
-                                            <td>
-                                                {(
-                                                    Number(item.duration) /
-                                                    Number(item.distance)
-                                                ).toFixed(2)} min/km
-                                            </td>
+                        <>
+                            <div className="table-container">
+                                <table>
+                                    <thead>
+                                        <tr>
+                                            <th>Date</th>
+                                            <th>Distance</th>
+                                            <th>Duration</th>
+                                            <th>Pace</th>
                                         </tr>
-                                    ))}
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+
+                                    <tbody>
+                                        {activities.map(item => (
+                                            <tr key={item.id}>
+                                                <td>
+                                                    {getDateString(
+                                                        item.activity_date
+                                                    )}
+                                                </td>
+
+                                                <td>
+                                                    {Number(item.distance).toFixed(2)} km
+                                                </td>
+
+                                                <td>
+                                                    {Number(item.duration).toFixed(2)} min
+                                                </td>
+
+                                                <td>
+                                                    {(
+                                                        Number(item.duration) /
+                                                        Number(item.distance)
+                                                    ).toFixed(2)} min/km
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {/* Pagination Controls */}
+                            <div className="pagination-controls">
+                                <button
+                                    type="button"
+                                    onClick={handlePreviousPage}
+                                    disabled={
+                                        !pagination.hasPreviousPage ||
+                                        historyLoading
+                                    }
+                                >
+                                    Previous
+                                </button>
+
+                                <span>
+                                    Page {pagination.page} of {pagination.totalPages}
+                                </span>
+
+                                <button
+                                    type="button"
+                                    onClick={handleNextPage}
+                                    disabled={
+                                        !pagination.hasNextPage ||
+                                        historyLoading
+                                    }
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        </>
                     )}
                 </section>
 

@@ -1,6 +1,7 @@
 
 const Activity = require("../models/Activity");
 
+// Add a manual running activity
 exports.addActivity = async (req, res) => {
     const { distance, duration, activity_date } = req.body;
 
@@ -24,6 +25,7 @@ exports.addActivity = async (req, res) => {
     const parsedDate = new Date(`${activity_date}T00:00:00.000Z`);
 
     if (
+        typeof activity_date !== "string" ||
         !/^\d{4}-\d{2}-\d{2}$/.test(activity_date) ||
         Number.isNaN(parsedDate.getTime()) ||
         parsedDate.toISOString().slice(0, 10) !== activity_date
@@ -42,7 +44,7 @@ exports.addActivity = async (req, res) => {
             source: "manual"
         });
 
-        res.status(201).json({
+        return res.status(201).json({
             message: "Activity saved successfully",
             activityId: activity._id
         });
@@ -50,21 +52,38 @@ exports.addActivity = async (req, res) => {
     } catch (error) {
         console.error("Add activity error:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             message: "Failed to save activity"
         });
     }
 };
 
+// Fetch paginated running history
 exports.getActivities = async (req, res) => {
     try {
-        const activities = await Activity.find({
+        const page = Number(req.query.page || 1);
+        const limit = 10;
+
+        if (!Number.isSafeInteger(page) || page < 1) {
+            return res.status(400).json({
+                message: "Invalid page number"
+            });
+        }
+
+        const filter = {
             user_id: req.userId
-        })
+        };
+
+        const total = await Activity.countDocuments(filter);
+
+        const activities = await Activity.find(filter)
             .sort({
                 activity_date: -1,
-                createdAt: -1
+                createdAt: -1,
+                _id: -1
             })
+            .skip((page - 1) * limit)
+            .limit(limit)
             .lean();
 
         const formattedActivities = activities.map(activity => ({
@@ -75,13 +94,104 @@ exports.getActivities = async (req, res) => {
                 .slice(0, 10)
         }));
 
-        res.json(formattedActivities);
+        return res.json({
+            activities: formattedActivities,
+            pagination: {
+                page,
+                limit,
+                total,
+                totalPages: Math.ceil(total / limit),
+                hasNextPage: page * limit < total,
+                hasPreviousPage: page > 1
+            }
+        });
 
     } catch (error) {
         console.error("Fetch activities error:", error);
 
-        res.status(500).json({
+        return res.status(500).json({
             message: "Failed to fetch activities"
+        });
+    }
+};
+
+// Fetch recent activity loads for ACWR
+exports.getWorkload = async (req, res) => {
+    try {
+        const today = new Date();
+
+        const currentWeekStart = new Date(Date.UTC(
+            today.getUTCFullYear(),
+            today.getUTCMonth(),
+            today.getUTCDate()
+        ));
+
+        const day = currentWeekStart.getUTCDay();
+
+        currentWeekStart.setUTCDate(
+            currentWeekStart.getUTCDate() -
+            (day === 0 ? 6 : day - 1)
+        );
+
+        const rangeStart = new Date(currentWeekStart);
+        rangeStart.setUTCDate(rangeStart.getUTCDate() - 28);
+
+        const rangeEnd = new Date(currentWeekStart);
+        rangeEnd.setUTCDate(rangeEnd.getUTCDate() + 7);
+
+        const activities = await Activity.find({
+            user_id: req.userId,
+            activity_date: {
+                $gte: rangeStart,
+                $lt: rangeEnd
+            }
+        })
+            .select("distance activity_date")
+            .lean();
+
+        const weeklyLoads = Array(5).fill(0);
+
+        for (const activity of activities) {
+            const elapsed =
+                activity.activity_date.getTime() -
+                currentWeekStart.getTime();
+
+            const weekOffset = Math.floor(
+                elapsed / (7 * 24 * 60 * 60 * 1000)
+            );
+
+            const index = -weekOffset;
+
+            if (index >= 0 && index < 5) {
+                weeklyLoads[index] += Number(activity.distance);
+            }
+        }
+
+        const acuteLoad = weeklyLoads[0];
+
+        const chronicLoad =
+            weeklyLoads.slice(1).reduce(
+                (sum, value) => sum + value,
+                0
+            ) / 4;
+
+        const acwr =
+            chronicLoad > 0
+                ? acuteLoad / chronicLoad
+                : null;
+
+        return res.json({
+            acuteLoad,
+            chronicLoad,
+            acwr,
+            weeklyLoads
+        });
+
+    } catch (error) {
+        console.error("Workload error:", error);
+
+        return res.status(500).json({
+            message: "Failed to calculate workload"
         });
     }
 };
