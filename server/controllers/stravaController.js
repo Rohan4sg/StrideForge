@@ -84,10 +84,16 @@ exports.stravaCallback = async (req, res) => {
         const data = await response.json();
 
         if (!response.ok) {
-            throw new Error(
-                data.message || "Strava token exchange failed"
-            );
-        }
+    console.error("Strava token exchange failed:", {
+        status: response.status,
+        message: data.message,
+        errors: data.errors
+    });
+
+    throw new Error(
+        data.message || "Strava token exchange failed"
+    );
+}
 
         await StravaAccount.findOneAndUpdate(
             { user_id: decoded.userId },
@@ -136,6 +142,36 @@ exports.syncActivities = async (req, res) => {
         res.status(500).json({
             message: error.message ||
                 "Strava synchronization failed"
+        });
+    }
+};
+
+// Check Strava connection status
+exports.getConnectionStatus = async (req, res) => {
+    try {
+        const account = await StravaAccount.findOne({
+            user_id: req.userId
+        }).select("athlete_id expires_at scope createdAt");
+
+        if (!account) {
+            return res.json({
+                connected: false
+            });
+        }
+
+        return res.json({
+            connected: true,
+            athlete_id: account.athlete_id,
+            expires_at: account.expires_at,
+            scope: account.scope,
+            connected_at: account.createdAt
+        });
+
+    } catch (error) {
+        console.error("Strava status error:", error);
+
+        return res.status(500).json({
+            message: "Unable to fetch Strava connection status"
         });
     }
 };
